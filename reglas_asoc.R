@@ -1,28 +1,33 @@
+#### MOVIES ####
 library(tidyverse)
 library(arules)
+library (arulesViz)
 
-groceries = read.csv("Groceries_dataset.csv")
-head(groceries)
 
-groceries$Date = as.Date(groceries$Date, "%d-%m-%Y")
-groceries$itemDescription = as.factor(groceries$itemDescription)
-groceries$Member_number <- as.factor(groceries$Member_number)
+movies =  read.csv("movies-awards.csv")
+head(movies)
+movies$Winner = replace(movies$Winner, is.na(movies$Winner), 0)
+movies['Year'] = NULL
+movies['Ceremony'] = NULL
+head(movies)
+movies$Award = as.factor(movies$Award)
+movies$Winner = as.factor(movies$Winner)
+movies$Cast = as.factor(movies$Cast)
+movies$Film = as.factor(movies$Film)
 
-str(groceries)
-
-groupings <- groceries %>% group_by(Member_number, Date) %>% group_split()
+groupings <- movies %>% group_by(Award, Winner) %>% group_split()
 head(groupings)
 
-take_items = function (tib){
-  a = tib[,3][[1]]
-  return(a)
-}
+apply(movies, 2, function(x) any(is.na(x)))
 
-trans_itemsets = lapply(groupings, take_items)
-  # we should give an index to every transaction in order to continue
-names(trans_itemsets) = 1:length(trans_itemsets)
-head(trans_itemsets)
+movie_trans = as(bind_rows(groupings), "transactions")
 
+inspect(head(movie_trans, n=10))
 
-transactions = as(trans_itemsets, "transactions")
+aMovie = apriori(movie_trans, parameter = list(support = 0.01, target="frequent"))
+aMovie = sort(aMovie, by="support")
+inspect(head(aMovie, n=10))
+barplot(table(size(aMovie)), xlab="itemset size", ylab="count")
+inspect(aMovie[size(aMovie)==1])
+
 
