@@ -22,9 +22,21 @@ head(cards)
 # especificado en la documentacion que se eliminara
 cards["Naive_Bayes_Classifier_Attrition_Flag_Card_Category_Contacts_Count_12_mon_Dependent_count_Education_Level_Months_Inactive_12_mon_1"] = NULL
 cards["Naive_Bayes_Classifier_Attrition_Flag_Card_Category_Contacts_Count_12_mon_Dependent_count_Education_Level_Months_Inactive_12_mon_2"] = NULL
-
+# eliminamos el id del cliente ya que no aporta ninguna información útil
+cards["CLIENTNUM"] = NULL
 
 str(cards)
+
+cards %>%
+  keep(is.numeric) %>% # keep only numeric values
+  gather() %>% # gather into key value
+  ggplot(aes(value)) + # put only value and then facet by every key
+  facet_wrap(~ key, scales = "free") +
+  geom_histogram(color="#3A86FF", fill="#3A86FF") + 
+  labs(title="Distribution for all numeric variables", font_weight="bold")
+  
+
+
 
 groupings <- cards %>% group_by(Attrition_Flag) %>% group_split()
 cards_trans = as(bind_rows(groupings), "transactions")
@@ -41,10 +53,32 @@ redundant <- is.redundant(x = aCards, measure = "confidence")
 rulesPruned <- aCards[!redundant] 
 
 aCards
-rulesPruned # 80% of the rules out 73004 -> 19906
+rulesPruned # 73% of the rules out: 73004 -> 19906
 mInteres <- interestMeasure(rulesPruned, measure=c("hyperConfidence", "leverage" ,"phi", "gini"), transactions=cards_trans)
 head(mInteres)
 
 plot(rulesPruned)
 plot(subset(aCards, subset = (rhs %in% "Attrition_Flag=Attrited Customer")), method="grouped")
+
+
+# we can explore different SUBSETS of rules based on whatever we find interesing. subset(aCards, subset = ())
+inspect(head(sort(subset(aCards, subset=(( rhs %pin% "Attrition_Flag=Attrited Customer") & 
+                                 lhs %pin% "Income_Category="))), by="count"))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
