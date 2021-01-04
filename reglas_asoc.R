@@ -88,24 +88,22 @@ inspect(head(subset(aCards, subset = (rhs %in% "Attrition_Flag=Attrited Customer
 
 redundant2 <- is.redundant(x = aCards2, measure = "confidence")
 rulesPruned2 <- aCards2[!redundant2] 
+
 inspect(head(subset(rulesPruned2, subset = (rhs %in% "Attrition_Flag=Attrited Customer")), n=20))
 
 inspect(head(subset(rulesPruned2, subset = ((lhs %pin% "Total_Ct_Chng_Q4_Q1=") & (rhs %in% "Attrition_Flag=Attrited Customer")))))
+
 inspect(head(subset(rulesPruned2, subset = ((lhs %pin% "Total_Amt_Chng_Q4_Q1=") & (rhs %in% "Attrition_Flag=Attrited Customer")))))
 
-
-
-plot(rulesPruned2)
-plot(subset(rulesPruned2, subset = (rhs %in% "Attrition_Flag=Attrited Customer"))) 
-
-
 inspect(head(subset(rulesPruned2, subset = ((lhs %pin% "Customer_Age=") & (rhs %in% "Attrition_Flag=Attrited Customer")))))
-plot(subset(rulesPruned2, subset = ((lhs %pin% "Customer_Age=") & (rhs %in% "Attrition_Flag=Attrited Customer"))), method="paracoord", reorder=TRUE)
 
 plot(rulesPruned2)
+plot(subset(rulesPruned2, subset = (rhs %in% "Attrition_Flag=Attrited Customer")))
+plot(subset(rulesPruned2, subset = ((lhs %pin% "Total_Ct_Chng_Q4_Q1=") & (rhs %in% "Attrition_Flag=Attrited Customer"))))
+plot(subset(rulesPruned2, subset = ((lhs %pin% "Total_Amt_Chng_Q4_Q1=") & (rhs %in% "Attrition_Flag=Attrited Customer"))))
 
 
-#### MAKING NEGATIVE ITEMSETS
+#### MAKING NEGATIVE ITEMSETS ####
 # copy original dataset in a new variable
 neg_cards = cards
 
@@ -120,6 +118,7 @@ for(o in options){
 # delete the original marital status col
 neg_cards$Marital_Status = NULL
 
+head(neg_cards)
 # make transactions object out of that
 neg_cards = as(neg_cards, "transactions")
 
@@ -131,4 +130,22 @@ neg_cards = apriori(neg_cards, parameter = list(support = 0.001, confidence = 0.
 
 # ready to inspect!
 inspect(head(subset(neg_cards, subset = (lhs %in% "!Divorced"))))
+
+
+neg_redundant = is.redundant(x = neg_cards, measure = "confidence")
+neg_pruned = neg_cards[!neg_redundant] 
+
+
+inspect(head(subset(neg_pruned, subset = ((lhs %in% "!Married") & (rhs %in% "Attrition_Flag=Attrited Customer")))))
+inspect(head(subset(neg_pruned, subset = ((lhs %in% "Single") & (rhs %in% "Attrition_Flag=Attrited Customer")))))
+inspect(head(subset(neg_pruned, subset = ((lhs %in% "Married") & (rhs %in% "Attrition_Flag=Attrited Customer")))))
+
+
+#### PLOTTING ####
+
+plot(subset(rulesPruned2, subset = (rhs %in% "Attrition_Flag=Attrited Customer")), method="grouped") 
+
+plot(subset(neg_pruned, subset = (lhs %in% c("Total_Relationship_Count=[1,3)"))), method="grouped")
+
+plot(subset(rulesPruned2, subset = (rhs %in% "Attrition_Flag=Attrited Customer")), method="grouped", control=list(k=20))
 
