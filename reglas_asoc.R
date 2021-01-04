@@ -35,10 +35,7 @@ cards$Marital_Status = factor(cards$Marital_Status, levels = c("Single", "Marrie
 cards$Income_Category = factor(cards$Income_Category, levels = c("Less than $40K", "$40K - $60K", "$60K - $80K", "$80K - $120K", "$120K +", "Unknown"))
 cards$Card_Category = factor(cards$Card_Category, levels = c("Blue", "Silver", "Gold", "Platinum"))
 
-head(gather(cards))
 head(cards)
-
-
 str(cards)
 
 # quick plot for all variables
@@ -52,8 +49,6 @@ cards %>%
 
 head(cards)
 
-att = cards$Attrition_Flag == "Attrited Customer"
-length(att[att == TRUE])
 
 cards %>%
   keep(is.character) %>% # keep only numeric values
@@ -68,15 +63,14 @@ cards %>%
 groupings <- cards %>% group_by(Attrition_Flag) %>% group_split()
 cards_trans = as(bind_rows(groupings), "transactions")
 
+# comprobar los diferentes niveles asignados a las variables
+cbind(cards_trans@itemInfo[["labels"]], cards_trans@itemInfo[["levels"]])
 
 # working with transactions 
 inspect(head(cards_trans, n=10))
 
-aCards = apriori(cards_trans, parameter = list(support = 0.01, confidence = 0.8, minlen=2, maxlen=4, target = "rules"))
+aCards = apriori(cards_trans, parameter = list(support = 0.1, confidence = 0.8, minlen=2, maxlen=4, target = "rules"))
 aCards = sort(aCards, by="support")
-inspect(head(aCards, n=10))
-
-aCards = sort(aCards, by=c("confidence"))
 inspect(head(aCards, n=10))
 
 
@@ -100,31 +94,41 @@ inspect(head(subset(rulesPruned2, subset = ((lhs %pin% "Total_Ct_Chng_Q4_Q1=") &
 inspect(head(subset(rulesPruned2, subset = ((lhs %pin% "Total_Amt_Chng_Q4_Q1=") & (rhs %in% "Attrition_Flag=Attrited Customer")))))
 
 
-## POSIBLE ESTRATEGIA: BUSCAR REGLAS CON LHS Total_Ct_Chng_Q4_Q1 EN UN CON VALORES PEQUEÑOS, PERO CON RHS EXISTING CUSTOMER.
-## ESTO PUEDE DAR INFO ACERCA DE LOS CLIENTES EXISTENTES QUE PUEDEN TENDER A IRSE, NO DEBEMOS CENTRARNOS SOLO EN LOS QUE
-## YA SE HAN IDO.
 
-## ES DECIR, BUSCAMOS LOS PATRONES DE LOS CLIENTES QUE YA SE HAN IDO DENTRO DE LOS ITEMSETS
-## DE CLIENTES QUE AUN NO SE HAN IDO. GOT IT?
+plot(rulesPruned2)
+plot(subset(rulesPruned2, subset = (rhs %in% "Attrition_Flag=Attrited Customer"))) 
 
 
+inspect(head(subset(rulesPruned2, subset = ((lhs %pin% "Customer_Age=") & (rhs %in% "Attrition_Flag=Attrited Customer")))))
+plot(subset(rulesPruned2, subset = ((lhs %pin% "Customer_Age=") & (rhs %in% "Attrition_Flag=Attrited Customer"))), method="paracoord", reorder=TRUE)
+
+plot(rulesPruned2)
 
 
+#### MAKING NEGATIVE ITEMSETS
+# copy original dataset in a new variable
+neg_cards = cards
 
-rulesPruned # 73% of the rules out: 73004 -> 19906
-mInteres <- interestMeasure(rulesPruned, measure=c("hyperConfidence", "leverage" ,"phi", "gini"), transactions=cards_trans)
-head(mInteres)
+# spread the marital status over the corresponding columns
+options = unique(unlist(cards$Marital_Status, recursive=FALSE))
+for(o in options){
+  neg_cards$newcol = rep(FALSE)
+  neg_cards <- rename(neg_cards, !!o := newcol)
+  neg_cards[grep(o, neg_cards$Marital_Status), o] = TRUE
+}
 
-plot(rulesPruned)
-plot(subset(aCards, subset = (rhs %in% "Attrition_Flag=Attrited Customer")), method="grouped")
+# delete the original marital status col
+neg_cards$Marital_Status = NULL
 
+# make transactions object out of that
+neg_cards = as(neg_cards, "transactions")
 
-# we can explore different SUBSETS of rules based on whatever we find interesing. subset(aCards, subset = ())
+# add the complements to the corresponding columns
+neg_cards = addComplement(neg_cards, options)
 
-head(sort(subset(rulesPruned, subset=(( rhs %pin% "Attrition_Flag=Attrited Customer") & 
-                                 lhs %pin% "Income_Category="))), by="count")
-inspect(head(rulesPruned))
+# make apriori object out of that
+neg_cards = apriori(neg_cards, parameter = list(support = 0.001, confidence = 0.8, minlen=2, maxlen=4))
 
-
-
+# ready to inspect!
+inspect(head(subset(neg_cards, subset = (lhs %in% "!Divorced"))))
 
